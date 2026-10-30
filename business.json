@@ -1,0 +1,32 @@
+{
+  "name": "Estudio Luz — Estética y Bienestar",
+  "timezone": "America/Argentina/Buenos_Aires",
+  "address": "Av. Argentina 450, Neuquén Capital",
+  "maps_url": "https://maps.google.com/?q=Av.+Argentina+450+Neuquen",
+  "slot_step_minutes": 30,
+  "booking_window_days": 14,
+  "min_notice_hours": 2,
+  "services": [
+    {"id": "facial", "name": "Limpieza facial", "duration_minutes": 60, "price": "$28.000"},
+    {"id": "masaje", "name": "Masaje descontracturante", "duration_minutes": 50, "price": "$32.000"},
+    {"id": "manos", "name": "Manicura semipermanente", "duration_minutes": 45, "price": "$18.000"},
+    {"id": "cejas", "name": "Perfilado de cejas", "duration_minutes": 20, "price": "$9.000"}
+  ],
+  "hours": {
+    "mon": [["09:00", "13:00"], ["16:00", "20:00"]],
+    "tue": [["09:00", "13:00"], ["16:00", "20:00"]],
+    "wed": [["09:00", "13:00"], ["16:00", "20:00"]],
+    "thu": [["09:00", "13:00"], ["16:00", "20:00"]],
+    "fri": [["09:00", "18:00"]],
+    "sat": [["10:00", "14:00"]],
+    "sun": []
+  },
+  "closed_dates": ["2026-12-25", "2027-01-01"],
+  "faq": [
+    {"keywords": ["precio", "precios", "cuanto", "cuesta", "sale", "valor"], "answer": "__PRICES__"},
+    {"keywords": ["horario", "horarios", "abren", "atienden", "cierran"], "answer": "__HOURS__"},
+    {"keywords": ["direccion", "donde", "ubicacion", "ubicados", "llegar"], "answer": "__ADDRESS__"},
+    {"keywords": ["pago", "pagar", "tarjeta", "transferencia", "efectivo", "mercado"], "answer": "Aceptamos efectivo, transferencia y Mercado Pago. Con tarjeta de crédito hasta 3 cuotas sin interés."},
+    {"keywords": ["estacionamiento", "estacionar", "auto"], "answer": "Hay estacionamiento medido sobre Av. Argentina y un garage a media cuadra."}
+  ]
+}

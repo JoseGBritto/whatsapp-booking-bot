@@ -1,0 +1,78 @@
+
+🙋 
+🤖 ¡Hola Ana! 👋 Soy el asistente virtual de *Estudio Luz — Estética y Bienestar*.
+   ¿Qué necesitás?
+   [Ver opciones]
+   1. Reservar un turno — Elegí servicio, día y horario
+   2. Mis turnos — Ver o cancelar tus reservas
+   3. Servicios y precios
+   4. Horarios y dirección
+   5. Hablar con una persona — Te responde alguien del equipo
+
+🙋 
+🤖 ¿Qué servicio querés reservar?
+   [Elegir servicio]
+   1. Limpieza facial — 60 min · $28.000
+   2. Masaje descontracturante — 50 min · $32.000
+   3. Manicura semipermanente — 45 min · $18.000
+   4. Perfilado de cejas — 20 min · $9.000
+
+🙋 
+🤖 *Limpieza facial* (60 min). ¿Qué día te queda bien?
+   [Elegir día]
+   1. Sáb 31/10 — 7 horarios libres
+   2. Lun 2/11 — 14 horarios libres
+   3. Mar 3/11 — 14 horarios libres
+   4. Mié 4/11 — 14 horarios libres
+   5. Jue 5/11 — 14 horarios libres
+   6. Vie 6/11 — 17 horarios libres
+   7. Sáb 7/11 — 7 horarios libres
+   8. Lun 9/11 — 14 horarios libres
+   9. Mar 10/11 — 14 horarios libres
+   10. Mié 11/11 — 14 horarios libres
+
+🙋 
+🤖 Horarios para el *Lun 2/11*:
+   [Elegir horario]
+   1. 09:00 hs
+   2. 09:30 hs
+   3. 10:00 hs
+   4. 10:30 hs
+   5. 11:00 hs
+   6. 11:30 hs
+   7. 12:00 hs
+   8. 16:00 hs
+   9. 16:30 hs
+   10. Ver más horarios ›
+
+🙋 
+🤖 ¿A nombre de quién hago la reserva? (nombre y apellido)
+
+🙋 
+🤖 Revisá tu reserva:
+   
+   💆 *Limpieza facial*
+   📅 Lunes 2/11 a las 09:00
+   👤 Ana Lopez
+   💲 $28.000
+   📍 Av. Argentina 450, Neuquén Capital
+   1. Confirmar
+   2. Cambiar horario
+   3. Cancelar
+
+🙋 
+🤖 ✅ ¡Listo, Ana! Tu turno quedó reservado:
+   
+   *Limpieza facial* el lunes 2/11 a las 09:00.
+   📍 Av. Argentina 450, Neuquén Capital
+   
+   Te mando un recordatorio el día anterior. Si necesitás cancelar, escribí *mis turnos*.
+
+📣 (to owner) 🆕 Nuevo turno #1: Ana Lopez (+5491100000000) — Limpieza facial, lunes 2/11 a las 09:00.
+
+🙋 
+🤖 Estos son tus próximos turnos. Tocá uno si querés cancelarlo.
+   [Ver mis turnos]
+   1. Lun 2/11 09:00 — Limpieza facial
+
+🙋 
