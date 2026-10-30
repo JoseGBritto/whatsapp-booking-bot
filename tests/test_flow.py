@@ -146,3 +146,42 @@ def test_without_owner_no_notifications(business, clock):
     book_first_slot(chat)
     chat.say("Ana López")
     assert len(chat.tap("confirm")) == 1
+
+
+def test_name_step_does_not_swallow_commands(bot):
+    chat = Chat(bot)
+    book_first_slot(chat)
+    out = chat.say("mejor quiero ver mis turnos")
+    assert out[0][1]["kind"] == "buttons" and "No tenés turnos" in out[0][1]["body"]
+
+
+def test_handoff_message_does_not_promise_the_same_chat(bot):
+    out = Chat(bot).say("quiero hablar con una persona")
+    assert "una persona te va a escribir" in out[0][1]["body"]
+
+
+def test_times_are_stored_in_utc_and_shown_in_local_time(bot):
+    chat = Chat(bot)
+    book_first_slot(chat)
+    chat.say("Ana López")
+    chat.tap("confirm")
+    raw = bot.db.conn.execute("SELECT start FROM appointments").fetchone()[0]
+    assert raw == "2026-11-02T13:00:00+00:00"           # 10:00 in Buenos Aires
+    assert f"{bot.db.get(1).start:%H:%M}" == "10:00"
+
+
+def test_bookings_stay_correct_across_a_daylight_saving_change(business):
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    from conftest import Clock
+    business.timezone = "Europe/Madrid"  # clocks went back on 25 Oct 2026
+    madrid = ZoneInfo("Europe/Madrid")
+    bot = Assistant(business, Database(), OWNER, Clock(datetime(2026, 10, 24, 8, 0, tzinfo=madrid)))
+    before = Chat(bot)
+    before.tap("slot:facial:2026-10-26T10:00:00+01:00")  # booked while still on summer time (+02:00)
+    before.say("Ana López")
+    before.tap("confirm")
+    other = Chat(bot, phone="5491133333333", name="Eve")
+    out = other.tap("day:facial:2026-10-26")
+    assert "slot:facial:2026-10-26T10:00:00+01:00" not in ids(other.to_me(out)[0])
+    assert "slot:facial:2026-10-26T11:00:00+01:00" in ids(other.to_me(out)[0])

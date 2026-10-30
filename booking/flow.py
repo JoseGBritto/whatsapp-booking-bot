@@ -44,6 +44,7 @@ class Assistant:
     def __init__(self, business: Business, db: Database, owner_phone: str = "",
                  clock: Callable[[], datetime] | None = None):
         self.biz, self.db, self.owner = business, db, owner_phone
+        db.use_timezone(business.tz)
         self.clock = clock or (lambda: datetime.now(business.tz))
 
     # ================================================================ entry point
@@ -70,7 +71,8 @@ class Assistant:
     # ================================================================ free text
     def _on_text(self, phone: str, raw: str, session: dict, profile_name: str) -> Outgoing:
         said = normalize(raw)
-        if session["state"] == "ask_name" and said not in GREETINGS:
+        wants_something_else = any(k in said for _, keys in INTENTS for k in keys)
+        if session["state"] == "ask_name" and said not in GREETINGS and not wants_something_else:
             name = re.sub(r"\s+", " ", raw.strip())[:40]
             if not re.fullmatch(r"[A-Za-zÀ-ÿñÑ' .-]{2,40}", name):
                 return [(phone, text("Escribí solo tu nombre y apellido, por favor."))]
@@ -247,7 +249,7 @@ class Assistant:
         until = self.clock() + timedelta(hours=HUMAN_PAUSE_HOURS)
         self.db.save_session(phone, "human", {}, paused_until=until.isoformat())
         who = f"{name} (+{phone})" if name else f"+{phone}"
-        return [(phone, text("Listo, le avisé al equipo y te van a responder por acá a la brevedad 🙌\n"
+        return [(phone, text("Listo, le avisé al equipo y una persona te va a escribir a la brevedad 🙌\n"
                              "Si querés volver al asistente, escribí *menu*."))] + self._notify_owner(
             f"📲 {who} quiere hablar con una persona: https://wa.me/{phone}\n"
             f"El asistente queda en pausa {HUMAN_PAUSE_HOURS} h en ese chat. Para reactivarlo: *reactivar {phone}*")

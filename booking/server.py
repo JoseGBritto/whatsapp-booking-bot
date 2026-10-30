@@ -19,6 +19,8 @@ def create_app(settings: Settings | None = None, assistant: Assistant | None = N
     if assistant is None:
         assistant = Assistant(Business.load(settings.business_file), Database(settings.db_path), settings.owner_phone)
     client = client or WhatsAppClient(settings.whatsapp_token, settings.phone_number_id, settings.graph_version)
+    if not settings.app_secret:
+        log.warning("WHATSAPP_APP_SECRET is not set: webhook signatures are NOT verified. Set it before going live.")
     app = Flask(__name__)
 
     @app.get("/webhook")

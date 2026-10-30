@@ -16,6 +16,8 @@ def build_reminders(business: Business, db: Database, now: datetime, template: s
     WhatsApp only allows free-form messages within 24 h of the customer's last message; outside that
     window an approved template is required, so we fall back to it (or skip if none is configured).
     """
+    db.use_timezone(business.tz)
+    today = now.astimezone(business.tz).date()
     out = []
     for appt in db.due_reminders(now):
         service = business.service(appt.service_id)
@@ -23,12 +25,13 @@ def build_reminders(business: Business, db: Database, now: datetime, template: s
         last = db.get_session(appt.phone)["last_inbound"]
         inside_window = last and now - datetime.fromisoformat(last) < timedelta(hours=23, minutes=30)
         if inside_window:
-            body = (f"⏰ Recordatorio: mañana tenés *{name}* el {long_when(appt.start)} en {business.address}.\n"
+            when = "hoy" if appt.start.date() == today else "mañana"
+            body = (f"⏰ Recordatorio: {when} tenés *{name}* el {long_when(appt.start)} en {business.address}.\n"
                     "¿Te esperamos?")
             message = buttons(body, [("menu:home", "Sí, ahí estaré"), (f"cxl:{appt.id}", "Cancelar turno")])
         elif template:
             message = {"kind": "template", "name": template, "lang": template_lang,
-                       "params": [appt.customer_name.split()[0] if appt.customer_name else "", name,
+                       "params": [appt.customer_name.split()[0] if appt.customer_name else "cliente", name,
                                   long_when(appt.start)]}
         else:
             continue

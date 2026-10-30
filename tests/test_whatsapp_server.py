@@ -125,3 +125,19 @@ def test_send_reminders_marks_only_successful_sends(bot, clock):
     assert send_reminders(bot.biz, bot.db, FakeClient(ok=False), clock.now) == 0
     assert send_reminders(bot.biz, bot.db, FakeClient(), clock.now) == 1
     assert send_reminders(bot.biz, bot.db, FakeClient(), clock.now) == 0  # not sent twice
+
+
+def test_same_day_reminder_says_today(bot, clock):
+    chat = Chat(bot)
+    chat.tap("svc:facial")
+    chat.tap("slot:facial:2026-11-02T16:00:00-03:00")  # this afternoon
+    chat.say("Ana López")
+    chat.tap("confirm")
+    (_, _, msg), = build_reminders(bot.biz, bot.db, clock.now)
+    assert msg["body"].startswith("⏰ Recordatorio: hoy tenés")
+
+
+def test_template_reminder_never_sends_an_empty_name(bot, clock):
+    bot.db.book("5491144444444", "", "facial", *(clock.now + timedelta(hours=5), clock.now + timedelta(hours=6)))
+    (_, _, msg), = build_reminders(bot.biz, bot.db, clock.now, template="turno_recordatorio")
+    assert msg["params"][0] == "cliente"

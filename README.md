@@ -26,10 +26,10 @@ It is made for appointment-based businesses: beauty salons, barbers, clinics, ph
 | **FAQ by keywords** | Prices, hours and address generated from `business.json`, plus custom answers. |
 | **Human handoff** | The bot pauses for 12 h in that chat and sends the owner a `wa.me` link; `reactivar <number>` resumes it. |
 | **Owner commands** | `agenda`, `agenda mañana`, `reactivar <number>` from the owner's phone. |
-| **Reminders** | `python -m booking remind` (hourly cron). Uses buttons inside WhatsApp's 24 h window and an approved template outside it. |
-| **Secure webhook** | `X-Hub-Signature-256` verification, verify-token handshake, idempotent processing of Meta's retries, never returns 500. |
+| **Reminders** | `python -m booking remind` (hourly cron) sends "hoy" or "mañana" reminders. Uses buttons inside WhatsApp's 24 h window and an approved template outside it. |
+| **Secure webhook** | `X-Hub-Signature-256` verification (the server warns at start-up if the app secret is missing), verify-token handshake, idempotent processing of Meta's retries, never returns 500. |
 | **Try it offline** | `python -m booking simulate` runs the full conversation in the terminal. |
-| **Tested** | 28 pytest tests (availability, conversation flow, webhook, reminders) and GitHub Actions CI. |
+| **Tested** | 34 pytest tests (availability, conversation flow, time zones incl. daylight saving, webhook, reminders) and GitHub Actions CI. |
 
 ## Quick start (no Meta account needed)
 
