@@ -26,6 +26,9 @@ class Settings:
     owner_phone: str = ""
     reminder_template: str = ""
     reminder_template_lang: str = "es_AR"
+    owner_alert_template: str = ""
+    owner_alert_template_lang: str = "es_AR"
+    allow_unsigned_webhooks: bool = False
     business_file: Path = Path("business.json")
     db_path: Path = Path("data/bookings.sqlite3")
 
@@ -42,6 +45,9 @@ class Settings:
             owner_phone=env("OWNER_PHONE", "").lstrip("+"),
             reminder_template=env("REMINDER_TEMPLATE", ""),
             reminder_template_lang=env("REMINDER_TEMPLATE_LANG", "es_AR"),
+            owner_alert_template=env("OWNER_ALERT_TEMPLATE", ""),
+            owner_alert_template_lang=env("OWNER_ALERT_TEMPLATE_LANG", "es_AR"),
+            allow_unsigned_webhooks=env("ALLOW_UNSIGNED_WEBHOOKS", "") == "1",
             business_file=Path(env("BUSINESS_FILE", "business.json")),
             db_path=Path(env("DB_PATH", "data/bookings.sqlite3")),
         )

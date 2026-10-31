@@ -185,3 +185,31 @@ def test_bookings_stay_correct_across_a_daylight_saving_change(business):
     out = other.tap("day:facial:2026-10-26")
     assert "slot:facial:2026-10-26T10:00:00+01:00" not in ids(other.to_me(out)[0])
     assert "slot:facial:2026-10-26T11:00:00+01:00" in ids(other.to_me(out)[0])
+
+
+def test_names_that_contain_keywords_are_accepted(bot):
+    chat = Chat(bot)
+    book_first_slot(chat)
+    out = chat.say("Felicitas Gómez")  # contains "cita"
+    assert out[0][1]["kind"] == "buttons" and "Felicitas Gómez" in out[0][1]["body"]
+
+
+def test_keywords_only_match_at_word_start(bot):
+    out = Chat(bot).say("Felicitas")
+    assert "No te entendí" in out[0][1]["body"]
+
+
+def test_hola_does_not_interrupt_a_human_conversation(bot):
+    chat = Chat(bot)
+    chat.say("quiero hablar con una persona")
+    assert chat.say("hola") == []
+    assert chat.say("menu")[0][1]["kind"] == "list"
+
+
+def test_more_days_row_reaches_the_whole_booking_window(bot):
+    chat = Chat(bot)
+    rows = ids(chat.to_me(chat.tap("svc:cejas"))[0])
+    assert len(rows) == 10 and rows[-1] == "days:cejas:9"
+    rest = ids(chat.to_me(chat.tap(rows[-1]))[0])
+    assert rest and all(r.startswith("day:cejas:") for r in rest)
+    assert rest[-1] == "day:cejas:2026-11-16"  # last open day inside the 14-day window

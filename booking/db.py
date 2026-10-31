@@ -39,6 +39,7 @@ class Appointment:
     end: datetime
     status: str
     reminded: bool
+    created_at: datetime | None = None
 
 
 def _utc(dt: datetime) -> str:
@@ -108,7 +109,8 @@ class Database:
                           (_utc(end), _utc(start)))
         return [(self._local(r["start"]), self._local(r["end"])) for r in rows]
 
-    def book(self, phone: str, name: str, service_id: str, start: datetime, end: datetime) -> int:
+    def book(self, phone: str, name: str, service_id: str, start: datetime, end: datetime,
+             created_at: datetime | None = None) -> int:
         """Atomically re-check the slot and insert, so two customers can't take the same time."""
         with self.lock:
             self.conn.execute("BEGIN IMMEDIATE")
@@ -121,7 +123,7 @@ class Database:
                 cur = self.conn.execute(
                     "INSERT INTO appointments (phone, customer_name, service_id, start, end, created_at) "
                     "VALUES (?,?,?,?,?,?)",
-                    (phone, name, service_id, _utc(start), _utc(end), _utc(datetime.now(timezone.utc))))
+                    (phone, name, service_id, _utc(start), _utc(end), _utc(created_at or datetime.now(timezone.utc))))
                 self.conn.execute("COMMIT")
                 return cur.lastrowid
             except Exception:
@@ -138,7 +140,8 @@ class Database:
 
     def _to_appt(self, r) -> Appointment:
         return Appointment(r["id"], r["phone"], r["customer_name"] or "", r["service_id"],
-                           self._local(r["start"]), self._local(r["end"]), r["status"], bool(r["reminded"]))
+                           self._local(r["start"]), self._local(r["end"]), r["status"], bool(r["reminded"]),
+                           self._local(r["created_at"]))
 
     def get(self, appointment_id: int) -> Appointment | None:
         rows = self._rows("SELECT * FROM appointments WHERE id=?", (appointment_id,))

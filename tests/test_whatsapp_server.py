@@ -127,17 +127,57 @@ def test_send_reminders_marks_only_successful_sends(bot, clock):
     assert send_reminders(bot.biz, bot.db, FakeClient(), clock.now) == 0  # not sent twice
 
 
-def test_same_day_reminder_says_today(bot, clock):
+def test_bookings_for_today_or_tomorrow_get_no_reminder(bot, clock):
     chat = Chat(bot)
     chat.tap("svc:facial")
-    chat.tap("slot:facial:2026-11-02T16:00:00-03:00")  # this afternoon
+    chat.tap("slot:facial:2026-11-02T16:00:00-03:00")  # this afternoon, booked just now
     chat.say("Ana López")
-    chat.tap("confirm")
+    out = chat.tap("confirm")
+    assert "recordatorio" not in out[0][1]["body"]  # nor promised
+    assert build_reminders(bot.biz, bot.db, clock.now) == []
+
+
+def test_reminder_for_an_old_booking_happening_today_says_today(bot, clock):
+    start = clock.now + timedelta(hours=8)
+    bot.db.book(ANA, "Ana López", "facial", start, start + timedelta(hours=1), created_at=clock.now - timedelta(days=3))
+    bot.db.save_session(ANA, "idle", {}, last_inbound=clock.now.isoformat())
     (_, _, msg), = build_reminders(bot.biz, bot.db, clock.now)
     assert msg["body"].startswith("⏰ Recordatorio: hoy tenés")
+    assert ids_of(msg)[0].startswith("ok:")
+
+
+def test_confirming_attendance_gets_an_acknowledgement(bot, clock):
+    start = clock.now + timedelta(hours=26)
+    appt_id = bot.db.book(ANA, "Ana López", "facial", start, start + timedelta(hours=1), created_at=clock.now - timedelta(days=3))
+    out = Chat(bot).tap(f"ok:{appt_id}")
+    assert out[0][1]["body"].startswith("¡Perfecto! Te esperamos")
+
+
+def ids_of(message):
+    return [o[0] for o in message["options"]]
 
 
 def test_template_reminder_never_sends_an_empty_name(bot, clock):
     bot.db.book("5491144444444", "", "facial", *(clock.now + timedelta(hours=5), clock.now + timedelta(hours=6)))
     (_, _, msg), = build_reminders(bot.biz, bot.db, clock.now, template="turno_recordatorio")
     assert msg["params"][0] == "cliente"
+
+
+def test_server_refuses_to_start_without_app_secret(bot):
+    with pytest.raises(RuntimeError, match="WHATSAPP_APP_SECRET"):
+        create_app(Settings(verify_token="vt"), bot, FakeClient())
+    dev = create_app(Settings(verify_token="vt", allow_unsigned_webhooks=True), bot, FakeClient()).test_client()
+    body = json.dumps(webhook([{"id": "dev1", "from": ANA, "type": "text", "text": {"body": "hola"}}])).encode()
+    assert dev.post("/webhook", data=body, content_type="application/json").status_code == 200
+
+
+def test_owner_alerts_use_the_template_when_configured(bot):
+    client = FakeClient()
+    settings = Settings(verify_token="vt", app_secret=SECRET, owner_phone=OWNER, owner_alert_template="aviso_dueno")
+    app = create_app(settings, bot, client).test_client()
+    body = json.dumps(webhook([{"id": "h1", "from": ANA, "type": "text", "text": {"body": "quiero hablar con una persona"}}])).encode()
+    app.post("/webhook", data=body, content_type="application/json", headers={"X-Hub-Signature-256": sign(body)})
+    to_owner = [m for to, m in client.sent if to == OWNER]
+    assert to_owner and to_owner[0]["kind"] == "template" and to_owner[0]["name"] == "aviso_dueno"
+    assert "\n" not in to_owner[0]["params"][0] and "wa.me" in to_owner[0]["params"][0]
+    assert [m for to, m in client.sent if to == ANA][0]["kind"] == "text"  # the customer still gets plain text

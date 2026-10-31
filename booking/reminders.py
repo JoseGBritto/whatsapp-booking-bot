@@ -20,6 +20,8 @@ def build_reminders(business: Business, db: Database, now: datetime, template: s
     today = now.astimezone(business.tz).date()
     out = []
     for appt in db.due_reminders(now):
+        if appt.created_at and appt.start - appt.created_at < timedelta(hours=24):
+            continue  # booked for today or tomorrow: the customer just confirmed it, no reminder needed
         service = business.service(appt.service_id)
         name = service.name if service else appt.service_id
         last = db.get_session(appt.phone)["last_inbound"]
@@ -28,7 +30,7 @@ def build_reminders(business: Business, db: Database, now: datetime, template: s
             when = "hoy" if appt.start.date() == today else "mañana"
             body = (f"⏰ Recordatorio: {when} tenés *{name}* el {long_when(appt.start)} en {business.address}.\n"
                     "¿Te esperamos?")
-            message = buttons(body, [("menu:home", "Sí, ahí estaré"), (f"cxl:{appt.id}", "Cancelar turno")])
+            message = buttons(body, [(f"ok:{appt.id}", "Sí, ahí estaré"), (f"cxl:{appt.id}", "Cancelar turno")])
         elif template:
             message = {"kind": "template", "name": template, "lang": template_lang,
                        "params": [appt.customer_name.split()[0] if appt.customer_name else "cliente", name,

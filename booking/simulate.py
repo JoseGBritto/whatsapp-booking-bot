@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import itertools
+import sys
 import tempfile
 from pathlib import Path
 
@@ -36,6 +37,8 @@ def main(business_file: Path, owner: str = "5490000000000") -> None:
     while True:
         try:
             said = input("\n🙋 ").strip()
+            if not sys.stdin.isatty():
+                print(said)
         except (EOFError, KeyboardInterrupt):
             print()
             return

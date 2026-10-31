@@ -20,23 +20,23 @@ It is made for appointment-based businesses: beauty salons, barbers, clinics, ph
 | | |
 |---|---|
 | **Native WhatsApp menus** | Interactive lists and reply buttons (no typing needed), with Meta's character limits enforced. |
-| **Real availability** | Split opening hours, service durations, slot step, minimum notice, booking window, holidays. |
+| **Real availability** | Split opening hours, service durations, slot step, minimum notice, holidays, and the whole booking window ("Ver más días" when there are more than 10 days). |
 | **No double bookings** | The slot is re-checked inside a database transaction at confirmation time. |
 | **Self-service** | "Mis turnos" lists upcoming appointments; customers can cancel only their own. |
 | **FAQ by keywords** | Prices, hours and address generated from `business.json`, plus custom answers. |
-| **Human handoff** | The bot pauses for 12 h in that chat and sends the owner a `wa.me` link; `reactivar <number>` resumes it. |
-| **Owner commands** | `agenda`, `agenda mañana`, `reactivar <number>` from the owner's phone. |
-| **Reminders** | `python -m booking remind` (hourly cron) sends "hoy" or "mañana" reminders. Uses buttons inside WhatsApp's 24 h window and an approved template outside it. |
-| **Secure webhook** | `X-Hub-Signature-256` verification (the server warns at start-up if the app secret is missing), verify-token handshake, idempotent processing of Meta's retries, never returns 500. |
+| **Human handoff** | The bot pauses for 12 h in that chat and alerts the owner; the customer types *menu* or the owner sends `reactivar <number>` to resume it. The alert's `wa.me` link opens the chat from the owner's own WhatsApp; to answer from the business number, use an inbox connected to the Cloud API. |
+| **Owner alerts and commands** | New bookings, cancellations and handoffs are sent to the owner's WhatsApp (as an approved template if `OWNER_ALERT_TEMPLATE` is set, because WhatsApp only delivers free-form messages within 24 h of the owner's last message). The owner can send `agenda`, `agenda mañana` and `reactivar <number>`. |
+| **Reminders** | `python -m booking remind` (hourly cron) reminds customers who booked more than a day ahead, with "I'll be there" and "cancel" buttons inside WhatsApp's 24 h window and an approved template outside it. |
+| **Secure webhook** | `X-Hub-Signature-256` verification (the server refuses to start without the app secret, unless `ALLOW_UNSIGNED_WEBHOOKS=1` for local tests), verify-token handshake, idempotent processing of Meta's retries, never returns 500. |
 | **Try it offline** | `python -m booking simulate` runs the full conversation in the terminal. |
-| **Tested** | 34 pytest tests (availability, conversation flow, time zones incl. daylight saving, webhook, reminders) and GitHub Actions CI. |
+| **Tested** | 42 pytest tests (availability, conversation flow, time zones incl. daylight saving, webhook, reminders) and GitHub Actions CI. |
 
 ## Quick start (no Meta account needed)
 
 ```bash
 python -m venv .venv
 # Windows:  .venv\Scripts\activate      macOS/Linux:  source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements-dev.txt   # app + test tools
 python -m booking simulate
 ```
 
@@ -53,7 +53,7 @@ pytest -q
 3. Deploy the server (Docker, Railway, Render, a VPS) and note its HTTPS URL. For local testing use a tunnel such as `ngrok http 8000` after `python -m booking serve`.
 4. In Meta → WhatsApp → Configuration, set the callback URL to `https://YOUR-URL/webhook`, paste the verify token, and subscribe to the **messages** field.
 5. Schedule `python -m booking remind` every hour.
-6. For production, add the business's own number and a permanent System User token, and get a reminder template approved (e.g. `turno_recordatorio` with 3 variables: name, service, date and time).
+6. For production, add the business's own number and a permanent System User token, and get two utility templates approved: a reminder (e.g. `turno_recordatorio` with 3 variables: name, service, date and time) and an owner alert with 1 variable (e.g. `aviso_dueno`), then set `REMINDER_TEMPLATE` and `OWNER_ALERT_TEMPLATE`.
 
 ## Adapting it to a new client
 

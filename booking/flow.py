@@ -27,6 +27,17 @@ INTENTS = [  # order matters: "mis turnos" must not be read as "turno" (book)
 ]
 
 
+# Exact messages that may leave the "what's your name?" step; anything else is taken as the name,
+# so a customer called "Felicitas" or "Reina" is never mistaken for a command.
+EXIT_COMMANDS = GREETINGS | {"turno", "reservar"}
+NAME_STEP_EXITS = ("mis turnos", "mi turno", "cancelar", "hablar con", "humano", "persona")
+
+
+def has_keyword(said: str, keys) -> bool:
+    """Keywords match at the start of a word: "cancel" matches "cancelar", "cita" doesn't match "Felicitas"."""
+    return any(re.search(r"(?<![a-z0-9])" + re.escape(k), said) for k in keys)
+
+
 def normalize(s: str) -> str:
     s = unicodedata.normalize("NFKD", s.lower().strip())
     return re.sub(r"\s+", " ", "".join(c for c in s if not unicodedata.combining(c))).strip(" .!?¡¿")
@@ -57,7 +68,7 @@ class Assistant:
             return self._owner_command(msg.get("text", ""))
 
         if session["paused_until"] and now < datetime.fromisoformat(session["paused_until"]):
-            if normalize(msg.get("text", "")) in GREETINGS | {"bot"}:
+            if normalize(msg.get("text", "")) in {"menu", "bot"}:  # "hola" alone won't interrupt the person
                 self.db.save_session(phone, "idle", {}, paused_until=None)
                 return self._main_menu(phone, session["name"])
             return []  # a person from the team is handling this chat
@@ -71,8 +82,7 @@ class Assistant:
     # ================================================================ free text
     def _on_text(self, phone: str, raw: str, session: dict, profile_name: str) -> Outgoing:
         said = normalize(raw)
-        wants_something_else = any(k in said for _, keys in INTENTS for k in keys)
-        if session["state"] == "ask_name" and said not in GREETINGS and not wants_something_else:
+        if session["state"] == "ask_name" and said not in EXIT_COMMANDS and not has_keyword(said, NAME_STEP_EXITS):
             name = re.sub(r"\s+", " ", raw.strip())[:40]
             if not re.fullmatch(r"[A-Za-zÀ-ÿñÑ' .-]{2,40}", name):
                 return [(phone, text("Escribí solo tu nombre y apellido, por favor."))]
@@ -82,7 +92,7 @@ class Assistant:
         if said in GREETINGS:
             return self._main_menu(phone, session["name"] or profile_name)
         for intent, keys in INTENTS:
-            if any(k in said for k in keys):
+            if has_keyword(said, keys):
                 return self._on_reply(phone, f"menu:{intent}", session, profile_name)
         answer = self._faq(said)
         if answer:
@@ -112,6 +122,11 @@ class Assistant:
             }.get(arg, lambda: self._main_menu(phone, session["name"]))()
         if kind == "svc":
             return self._choose_day(phone, arg)
+        if kind == "days":
+            service_id, offset = arg.split(":")
+            return self._choose_day(phone, service_id, int(offset))
+        if kind == "ok":
+            return self._confirm_attendance(phone, int(arg))
         if kind == "day":
             service_id, day = arg.split(":", 1)
             return self._choose_slot(phone, service_id, date.fromisoformat(day), 0)
@@ -154,18 +169,22 @@ class Assistant:
     def _booked(self, now: datetime) -> list[tuple[datetime, datetime]]:
         return self.db.booked_intervals(now - timedelta(days=1), now + timedelta(days=self.biz.booking_window_days + 2))
 
-    def _choose_day(self, phone: str, service_id: str) -> Outgoing:
+    def _choose_day(self, phone: str, service_id: str, offset: int = 0) -> Outgoing:
         service = self.biz.service(service_id)
         if not service:
             return self._choose_service(phone)
         now = self.clock()
-        days = days_with_availability(self.biz, service, self._booked(now), now)
+        all_days = days_with_availability(self.biz, service, self._booked(now), now,
+                                          limit=self.biz.booking_window_days + 1)
+        days = all_days[offset: offset + PAGE] if len(all_days) - offset > 10 else all_days[offset:]
         if not days:
             return [(phone, text(f"No quedan turnos libres para {service.name} en los próximos "
                                  f"{self.biz.booking_window_days} días 😕")), *self._after_info(phone)]
         self.db.save_session(phone, "choose_day", {"service": service_id})
         rows = [(f"day:{service_id}:{d.isoformat()}", short_day(d), f"{n} horario{'s' if n > 1 else ''} libre{'s' if n > 1 else ''}")
                 for d, n in days]
+        if offset + len(days) < len(all_days):
+            rows.append((f"days:{service_id}:{offset + PAGE}", "Ver más días ›", ""))
         return [(phone, menu_list(f"*{service.name}* ({service.duration_minutes} min). ¿Qué día te queda bien?",
                                   "Elegir día", rows, "Días disponibles"))]
 
@@ -209,17 +228,25 @@ class Assistant:
             return self._main_menu(phone, session["name"])
         service, start = self.biz.service(data["service"]), datetime.fromisoformat(data["start"])
         try:
+            now = self.clock()
             appt_id = self.db.book(phone, session["name"], service.id, start,
-                                   start + timedelta(minutes=service.duration_minutes))
+                                   start + timedelta(minutes=service.duration_minutes), created_at=now)
         except SlotTaken:
             return [(phone, text("Uy, alguien reservó ese horario hace un instante 😅 Elegí otro:")),
                     *self._choose_slot(phone, service.id, start.date(), 0)]
         self.db.save_session(phone, "idle", {})
         out = [(phone, text(f"✅ ¡Listo, {session['name'].split()[0]}! Tu turno quedó reservado:\n\n"
                             f"*{service.name}* el {long_when(start)}.\n📍 {self.biz.address}\n\n"
-                            "Te mando un recordatorio el día anterior. Si necesitás cancelar, escribí *mis turnos*."))]
+                            + ("Te mando un recordatorio el día anterior. " if start - now >= timedelta(hours=24) else "")
+                            + "Si necesitás cancelar, escribí *mis turnos*."))]
         return out + self._notify_owner(f"🆕 Nuevo turno #{appt_id}: {session['name']} (+{phone}) — "
                                         f"{service.name}, {long_when(start)}.")
+
+    def _confirm_attendance(self, phone: str, appt_id: int) -> Outgoing:
+        appt = self.db.get(appt_id)
+        if not appt or appt.phone != phone or appt.status != "booked":
+            return self._my_appointments(phone)
+        return [(phone, text(f"¡Perfecto! Te esperamos el {long_when(appt.start)} 😊"))]
 
     def _my_appointments(self, phone: str) -> Outgoing:
         upcoming = self.db.upcoming_for(phone, self.clock())

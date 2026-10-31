@@ -82,7 +82,7 @@ class WhatsAppClient:
 def verify_signature(app_secret: str, raw_body: bytes, header: str | None) -> bool:
     """Checks X-Hub-Signature-256 so only Meta can call the webhook."""
     if not app_secret:
-        return True  # allowed in local development only; README explains how to set it
+        return False
     if not header or not header.startswith("sha256="):
         return False
     expected = hmac.new(app_secret.encode(), raw_body, hashlib.sha256).hexdigest()
