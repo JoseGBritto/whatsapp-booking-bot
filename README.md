@@ -28,8 +28,9 @@ It is made for appointment-based businesses: beauty salons, barbers, clinics, ph
 | **Owner alerts and commands** | New bookings, cancellations and handoffs are sent to the owner's WhatsApp (as an approved template if `OWNER_ALERT_TEMPLATE` is set, because WhatsApp only delivers free-form messages within 24 h of the owner's last message). The owner can send `agenda`, `agenda mañana` and `reactivar <number>`. |
 | **Reminders** | `python -m booking remind` (hourly cron) reminds customers who booked more than a day ahead, with "I'll be there" and "cancel" buttons inside WhatsApp's 24 h window and an approved template outside it. |
 | **Secure webhook** | `X-Hub-Signature-256` verification (the server refuses to start without the app secret, unless `ALLOW_UNSIGNED_WEBHOOKS=1` for local tests), verify-token handshake, idempotent processing of Meta's retries, never returns 500. |
+| **Latin American numbers** | Replies reach Argentine (549…) and Mexican (521…) numbers even where the API expects them without the mobile prefix. |
 | **Try it offline** | `python -m booking simulate` runs the full conversation in the terminal. |
-| **Tested** | 42 pytest tests (availability, conversation flow, time zones incl. daylight saving, webhook, reminders) and GitHub Actions CI. |
+| **Tested** | 43 pytest tests (availability, conversation flow, time zones incl. daylight saving, webhook, reminders) and GitHub Actions CI. |
 
 ## Quick start (no Meta account needed)
 

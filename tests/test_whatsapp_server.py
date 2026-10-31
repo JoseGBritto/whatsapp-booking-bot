@@ -181,3 +181,25 @@ def test_owner_alerts_use_the_template_when_configured(bot):
     assert to_owner and to_owner[0]["kind"] == "template" and to_owner[0]["name"] == "aviso_dueno"
     assert "\n" not in to_owner[0]["params"][0] and "wa.me" in to_owner[0]["params"][0]
     assert [m for to, m in client.sent if to == ANA][0]["kind"] == "text"  # the customer still gets plain text
+
+
+def test_argentine_numbers_are_retried_without_the_mobile_9():
+    from booking.whatsapp import WhatsAppClient, alternate_number
+
+    class Resp:
+        def __init__(self, status):
+            self.status_code, self.text = status, "{}"
+
+    class Session:
+        def __init__(self):
+            self.recipients = []
+
+        def post(self, url, json=None, timeout=None, headers=None):
+            self.recipients.append(json["to"])
+            return Resp(400 if json["to"].startswith("549") else 200)
+
+    session = Session()
+    assert WhatsAppClient("t", "123", session=session).send("5492991234567", text("hola"))
+    assert session.recipients == ["5492991234567", "542991234567"]
+    assert alternate_number("5215512345678") == "525512345678"
+    assert alternate_number("14155550100") is None

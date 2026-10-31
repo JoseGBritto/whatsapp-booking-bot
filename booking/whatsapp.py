@@ -65,16 +65,36 @@ class WhatsAppClient:
         self.session = session or requests.Session()
 
     def send(self, to: str, message: dict) -> bool:
+        ok, status = self._post(to, message)
+        alt = alternate_number(to)
+        if not ok and status == 400 and alt:
+            # Argentina (549…) and Mexico (521…): webhooks include a mobile prefix that some accounts
+            # (e.g. Meta's test numbers) reject when replying. Retry once without it.
+            ok, _ = self._post(alt, message)
+            if ok:
+                log.info("Delivered to %s using the alternate format %s", to, alt)
+        return ok
+
+    def _post(self, to: str, message: dict) -> tuple[bool, int]:
         try:
             resp = self.session.post(self.url, json=to_api_payload(to, message), timeout=15,
                                      headers={"Authorization": f"Bearer {self.token}"})
             if resp.status_code >= 400:
                 log.error("WhatsApp API %s: %s", resp.status_code, resp.text[:300])
-                return False
-            return True
+                return False, resp.status_code
+            return True, resp.status_code
         except requests.RequestException as exc:
             log.error("WhatsApp API unreachable: %s", exc)
-            return False
+            return False, 0
+
+
+def alternate_number(number: str) -> str | None:
+    """5492991234567 -> 542991234567 (Argentina), 5215512345678 -> 525512345678 (Mexico)."""
+    if number.startswith("549") and len(number) == 13:
+        return "54" + number[3:]
+    if number.startswith("521") and len(number) == 13:
+        return "52" + number[3:]
+    return None
 
 
 # ------------------------------------------------------------------ incoming webhooks
